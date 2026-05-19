@@ -49,28 +49,28 @@ class AccountMove(models.Model):
                 tax = self._simple_pdf_find_tax(
                     currency.round(amount_tax / amount_untaxed) * 100, journal.type
                 )
-            self.write(
-                {
-                    "currency_id": currency.id,
-                    "partner_id": parsed_values["partner"]
-                    .get("recordset", self.env["res.partner"])
-                    .id,
-                    "invoice_date": parsed_values.get("date"),
-                    "invoice_date_due": parsed_values.get("date_due"),
-                    "ref": parsed_values.get("invoice_number"),
-                    "invoice_line_ids": [
-                        (
-                            0,
-                            0,
-                            {
-                                "name": parsed_values.get("description", "/"),
-                                "price_unit": amount_untaxed,
-                                "tax_ids": [(6, 0, tax.ids)],
-                            },
-                        ),
-                    ],
-                }
-            )
+            write_vals = {
+                "currency_id": currency.id,
+                "partner_id": parsed_values["partner"]
+                .get("recordset", self.env["res.partner"])
+                .id,
+                "invoice_date_due": parsed_values.get("date_due"),
+                "ref": parsed_values.get("invoice_number"),
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "name": parsed_values.get("description", "/"),
+                            "price_unit": amount_untaxed,
+                            "tax_ids": [(6, 0, tax.ids)],
+                        },
+                    ),
+                ],
+            }
+            if "date" in parsed_values:
+                write_vals["invoice_date"] = parsed_values["date"]
+            self.write(write_vals)
             self._onchange_partner_id()
             if self.partner_id.simple_pdf_product_id:
                 line = self.invoice_line_ids[:1]
